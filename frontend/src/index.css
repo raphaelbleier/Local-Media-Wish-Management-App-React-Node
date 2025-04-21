@@ -1,0 +1,630 @@
+/* src/index.css */
+
+/* --- CSS Variables for Theme --- */
+:root {
+    --background-color: #f4f4f4;
+    --text-color: #333;
+    --primary-color: #007bff;
+    --primary-hover-color: #0056b3;
+    --secondary-color: #6c757d;
+    --secondary-hover-color: #5a6268;
+
+    --card-background: #ffffff;
+    --card-border: #e0e0e0;
+    --input-background: #ffffff;
+    --input-border: #ccc;
+    --button-text-color: white;
+    --button-absenden-bg: #007bff;
+    --button-absenden-hover-bg: #0056b3;
+    --button-erledigt-bg: #28a745;
+    --button-erledigt-hover-bg: #218838;
+     --button-admin-bg: #ffc107;
+    --button-admin-hover-bg: #e0a800;
+     --button-admin-create-bg: #17a2b8;
+    --button-admin-create-hover-bg: #138496;
+    --button-logout-bg: #dc3545;
+
+    --status-open-color: #dc3545;
+    --status-open-bg: #f8d7da;
+    --status-done-color: #28a745;
+    --status-done-bg: #d4edda;
+
+    --message-success-bg: #d4edda;
+    --message-success-color: #155724;
+    --message-success-border: #c3e6cb;
+    --message-error-bg: #f8d7da;
+    --message-error-color: #721c24;
+    --message-error-border: #f5c6cb;
+     --message-info-bg: #d1ecf1;
+    --message-info-color: #0c5460;
+    --message-info-border: #bee5eb;
+
+
+    --list-item-border: #eee;
+
+     /* TMDb specific */
+    --tmdb-search-results-bg: #ffffff;
+    --tmdb-search-results-border: #ccc;
+    --tmdb-search-item-hover-bg: #f0f0f0;
+    --tmdb-poster-placeholder-bg: #e0e0e0;
+}
+
+/* --- Dark Mode Variables --- */
+body.dark-mode {
+    --background-color: #1e1e1e;
+    --text-color: #e0e0e0;
+    --primary-color: #0091ff;
+    --primary-hover-color: #0077cc;
+    --secondary-color: #adb5bd;
+    --secondary-hover-color: #9ba3aa;
+
+    --card-background: #2b2b2b;
+    --card-border: #444;
+    --input-background: #3b3b3b;
+    --input-border: #555;
+    --button-text-color: white;
+    --button-absenden-bg: #007bff;
+    --button-absenden-hover-bg: #0056b3;
+    --button-erledigt-bg: #28a745;
+    --button-erledigt-hover-bg: #218838;
+     --button-admin-bg: #ffc107;
+    --button-admin-hover-bg: #e0a800;
+    --button-admin-create-bg: #17a2b8;
+    --button-admin-create-hover-bg: #138496;
+    --button-logout-bg: #dc3545;
+    --button-logout-hover-bg: #c82333;
+
+    --status-open-color: #ff6b6b;
+    --status-open-bg: #4a1c1c;
+    --status-done-color: #6fcf97;
+    --status-done-bg: #1f472c;
+
+    --message-success-bg: #2f5f3c;
+    --message-success-color: #6fcf97;
+    --message-success-border: #408057;
+    --message-error-bg: #5c2c30;
+    --message-error-color: #ff6b6b;
+    --message-error-border: #723a3f;
+     --message-info-bg: #173a40;
+    --message-info-color: #a2d9e2;
+    --message-info-border: #215a64;
+
+
+    --list-item-border: #444;
+
+     /* TMDb specific */
+    --tmdb-search-results-bg: #3b3b3b;
+    --tmdb-search-results-border: #555;
+    --tmdb-search-item-hover-bg: #4a4a4a;
+     --tmdb-poster-placeholder-bg: #555;
+}
+
+/* --- General Styles --- */
+body {
+  font-family: sans-serif;
+  line-height: 1.6;
+  margin: 0;
+  padding: 20px;
+  background-color: var(--background-color);
+  color: var(--text-color);
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+#root {
+  max-width: 1000px;
+  margin: 0 auto;
+  background-color: var(--card-background);
+  padding: 20px;
+  box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+  border-radius: 12px;
+  border: 1px solid var(--card-border);
+  transition: background-color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+h1, h2, h3 {
+  color: var(--text-color);
+  margin-top: 0;
+}
+
+h1 {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+/* --- Navigation --- */
+nav {
+    margin-bottom: 30px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid var(--card-border);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    align-items: center;
+}
+
+nav a {
+    text-decoration: none;
+    color: var(--primary-color);
+    font-weight: bold;
+    transition: color 0.3s ease;
+}
+
+nav a:hover {
+    text-decoration: underline;
+    color: var(--primary-hover-color);
+}
+
+nav button {
+    padding: 5px 10px;
+    font-size: 0.9em;
+}
+
+nav .nav-logout-button {
+     margin-left: auto;
+}
+
+
+/* --- Card/Section Styling --- */
+.card {
+  background-color: var(--card-background);
+  padding: 20px;
+  margin-bottom: 20px;
+  border-radius: 8px;
+  border: 1px solid var(--card-border);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+  transition: background-color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+/* --- Form Styling --- */
+form div {
+  margin-bottom: 15px;
+}
+
+label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: bold;
+  color: var(--text-color);
+}
+
+input[type="text"],
+input[type="password"],
+input[type="email"],
+textarea,
+select { /* Add select for type */
+  width: 100%;
+  padding: 10px;
+  border: 1px solid var(--input-border);
+  border-radius: 4px;
+  box-sizing: border-box;
+  background-color: var(--input-background);
+  color: var(--text-color);
+  transition: border-color 0.3s ease, background-color 0.3s ease, color 0.3s ease;
+  appearance: none; /* Remove default select arrow */
+  background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23555%22%20d%3D%22M287%2C114.7L159.2%2C242.5c-4.5%2C4.5-10.1%2C6.7-15.8%2C6.7s-11.3-2.2-15.8-6.7L5.3%2C114.7C-1.8%2C107.5-1.8%2C97.1%2C5.3%2C89.9c7.1-7.1%2C18.6-7.1%2C25.7%2C0l106.1%2C106.1l106.1-106.1c7.1-7.1%2C18.6-7.1%2C25.7%2C0C294.1%2C97.1%2C294.1%2C107.5%2C287%2C114.7z%22%2F%3E%3C%2Fsvg%3E'); /* Custom arrow */
+  background-repeat: no-repeat;
+  background-position: right 10px top 50%;
+  background-size: 12px auto;
+}
+
+input[type="text"]:focus,
+input[type="password"]:focus,
+textarea:focus,
+select:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 5px rgba(0, 123, 255, 0.25);
+}
+
+/* --- Button Styling --- */
+button {
+  padding: 10px 15px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 1em;
+  color: var(--button-text-color);
+  transition: background-color 0.3s ease, opacity 0.3s ease;
+}
+
+button:hover:not(:disabled) {
+  opacity: 0.9;
+}
+
+button:disabled {
+  background-color: var(--secondary-color);
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/* Specific Button Colors */
+.card form button[type="submit"] {
+    background-color: var(--button-absenden-bg);
+}
+.card form button[type="submit"]:hover:not(:disabled) {
+    background-color: var(--button-absenden-hover-bg);
+}
+
+.admin-login-card form button[type="submit"] {
+    background-color: var(--button-admin-bg);
+     color: #333;
+}
+.admin-login-card form button[type="submit"]:hover:not(:disabled) {
+     background-color: var(--button-admin-hover-bg);
+}
+
+.admin-section form button[type="submit"] {
+    background-color: var(--button-admin-create-bg);
+     color: var(--button-text-color);
+}
+.admin-section form button[type="submit"]:hover:not(:disabled) {
+    background-color: var(--button-admin-create-hover-bg);
+}
+
+
+.admin-wish-item button {
+    background-color: var(--button-erledigt-bg);
+}
+.admin-wish-item button:hover:not(:disabled) {
+    background-color: var(--button-erledigt-hover-bg);
+}
+
+/* --- List Styling --- */
+ul {
+  list-style: none;
+  padding: 0;
+}
+
+.wish-item {
+  background-color: var(--card-background);
+  border: 1px solid var(--list-item-border);
+  margin-bottom: 10px;
+  padding: 15px;
+  border-radius: 5px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+   transition: background-color 0.3s ease, border-color 0.3s ease;
+}
+
+/* Specific style for wish item content area */
+.wish-item-content {
+    display: flex;
+    align-items: center; /* Align poster and text vertically */
+    flex-grow: 1;
+    gap: 15px; /* Space between poster and text */
+    flex-wrap: wrap; /* Allow wrapping if horizontal space is limited */
+}
+
+.wish-item-poster {
+    width: 60px; /* Fixed width for poster */
+    height: 90px; /* Fixed height */
+    background-color: var(--tmdb-poster-placeholder-bg); /* Placeholder if no image */
+    border-radius: 4px;
+    object-fit: cover; /* Cover the area */
+    flex-shrink: 0; /* Don't shrink */
+}
+
+.wish-item-details {
+    display: flex;
+    flex-direction: column; /* Stack title, year, season */
+    flex-grow: 1; /* Allow text details to grow */
+}
+
+
+.wish-item strong {
+    color: var(--text-color);
+     font-size: 1.1em;
+}
+
+.wish-item span {
+    font-style: normal; /* Override italic */
+    color: var(--secondary-color);
+    font-size: 0.9em;
+    white-space: normal; /* Allow wrapping */
+}
+
+/* --- Status Badges --- */
+.status-badge {
+    display: inline-block;
+    padding: 3px 8px;
+    border-radius: 12px;
+    font-size: 0.8em;
+    font-weight: bold;
+    text-transform: uppercase;
+    margin-left: 5px;
+}
+
+.status-badge.status-offen {
+    background-color: var(--status-open-bg);
+    color: var(--status-open-color);
+}
+
+.status-badge.status-erledigt {
+    background-color: var(--status-done-bg);
+    color: var(--status-done-color);
+}
+
+/* --- Admin Specific Styles --- */
+.admin-section h2 {
+    margin-top: 0;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--card-border);
+    margin-bottom: 20px;
+}
+
+.admin-wish-item {
+     /* Inherits from .wish-item */
+     align-items: flex-start; /* Align items to the top because of button */
+}
+
+.admin-wish-item .wish-item-content {
+     flex-direction: row; /* Keep horizontal layout for admin list item content */
+     align-items: center;
+}
+
+
+.admin-wish-item > button { /* Target the button directly inside li */
+    margin-left: 10px;
+     flex-shrink: 0; /* Don't shrink button */
+}
+
+
+/* Admin Statistics Styles */
+.admin-stats {
+    margin-top: 20px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+}
+
+.admin-stats > div {
+    background-color: var(--background-color);
+    padding: 15px;
+    border-radius: 8px;
+    border: 1px solid var(--card-border);
+    flex: 1 1 200px;
+    text-align: center;
+}
+
+.admin-stats h3 {
+    margin-top: 0;
+    margin-bottom: 10px;
+    font-size: 1em;
+    color: var(--secondary-color);
+}
+
+.admin-stats p {
+    margin: 0;
+    font-size: 1.8em;
+    font-weight: bold;
+    color: var(--primary-color);
+}
+
+
+/* --- Message Styles --- */
+.message {
+    margin-top: 15px;
+    padding: 10px;
+    border-radius: 4px;
+    font-weight: bold;
+}
+
+.message.success {
+    background-color: var(--message-success-bg);
+    color: var(--message-success-color);
+    border: 1px solid var(--message-success-border);
+}
+
+.message.error {
+    background-color: var(--message-error-bg);
+    color: var(--message-error-color);
+    border: 1px solid var(--message-error-border);
+}
+
+.message.info {
+    background-color: var(--message-info-bg);
+    color: var(--message-info-color);
+    border: 1px solid var(--message-info-border);
+}
+
+/* --- TMDb Search/Autocomplete Styles --- */
+.search-container {
+    position: relative; /* Needed for absolute positioning of results */
+}
+
+.search-results {
+    position: absolute;
+    top: 100%; /* Position below the input */
+    left: 0;
+    right: 0;
+    z-index: 100; /* Ensure it's above other content */
+    border: 1px solid var(--tmdb-search-results-border);
+    background-color: var(--tmdb-search-results-bg);
+    max-height: 300px; /* Limit height and make it scrollable */
+    overflow-y: auto;
+    border-radius: 4px;
+    box-shadow: 0 5px 10px rgba(0, 0, 0, 0.1);
+     margin-top: 5px; /* Small gap below input */
+}
+
+.search-results ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.search-results li {
+    padding: 10px;
+    border-bottom: 1px solid var(--tmdb-search-results-border);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    transition: background-color 0.2s ease;
+}
+
+.search-results li:last-child {
+    border-bottom: none;
+}
+
+.search-results li:hover {
+    background-color: var(--tmdb-search-item-hover-bg);
+}
+
+.search-result-poster {
+     width: 40px; /* Smaller poster in results */
+     height: 60px;
+     background-color: var(--tmdb-poster-placeholder-bg);
+     border-radius: 3px;
+     object-fit: cover;
+     flex-shrink: 0;
+}
+
+.search-result-details {
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+}
+
+.search-result-details strong {
+    font-size: 1em;
+     color: var(--text-color);
+}
+
+.search-result-details span {
+    font-size: 0.8em;
+     color: var(--secondary-color);
+}
+
+/* Style for the selected item display */
+.selected-item-display {
+    margin-top: 15px;
+    padding: 10px;
+    border: 1px solid var(--card-border);
+    border-radius: 4px;
+    background-color: var(--background-color); /* Use body background */
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    flex-wrap: wrap;
+}
+
+.selected-item-display img {
+    width: 70px; /* Slightly larger poster for selection display */
+    height: 105px;
+    background-color: var(--tmdb-poster-placeholder-bg);
+    border-radius: 4px;
+    object-fit: cover;
+    flex-shrink: 0;
+}
+
+.selected-item-details {
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+}
+
+.selected-item-details strong {
+     font-size: 1.2em;
+     color: var(--text-color);
+}
+
+.selected-item-details span {
+    font-size: 0.9em;
+     color: var(--secondary-color);
+}
+
+
+/* --- Basic Responsive adjustments --- */
+@media (max-width: 768px) {
+  body {
+    padding: 10px;
+  }
+
+  #root {
+    padding: 10px;
+  }
+
+  nav {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 10px;
+  }
+
+  nav a, nav button {
+      margin-left: 0;
+      width: 100%;
+      text-align: center;
+  }
+
+  nav .nav-logout-button {
+      margin-left: 0;
+  }
+
+  .wish-item, .admin-wish-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px; /* Adjust gap */
+    padding: 10px; /* Reduce padding */
+  }
+
+  .wish-item > *, .admin-wish-item > * {
+    margin-bottom: 0;
+    width: 100%;
+  }
+
+   .wish-item-content, .admin-wish-item .wish-item-content {
+        flex-direction: column; /* Stack content vertically */
+        align-items: flex-start;
+        gap: 10px;
+   }
+
+    .wish-item-poster, .admin-wish-item .wish-item-poster {
+        width: 80px; /* Slightly larger poster on small screens */
+        height: 120px;
+        align-self: center; /* Center poster if stacked */
+    }
+
+   .wish-item-details, .admin-wish-item .wish-item-details {
+        width: 100%; /* Ensure text details take full width */
+        gap: 5px; /* Adjust gap */
+   }
+
+
+  .admin-wish-item > button {
+      margin-top: 10px;
+      margin-left: 0;
+      width: auto;
+      align-self: flex-end;
+  }
+
+  form div {
+      margin-bottom: 10px;
+  }
+
+   .admin-stats {
+       flex-direction: column;
+       gap: 10px;
+   }
+
+   .admin-stats > div {
+       flex: 1 1 100%;
+   }
+
+    /* TMDb Specific on Mobile */
+    .selected-item-display {
+         flex-direction: column;
+         align-items: center;
+         gap: 10px;
+    }
+     .selected-item-display img {
+         align-self: center;
+     }
+      .selected-item-details {
+         width: 100%;
+         text-align: center;
+      }
+}
