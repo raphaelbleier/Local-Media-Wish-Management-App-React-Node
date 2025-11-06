@@ -35,6 +35,9 @@ const isProduction = NODE_ENV === 'production';
 
 const TMDB_API_BASE_URL = 'https://api.themoviedb.org/3';
 
+// Constants for time conversions
+const MINUTES_TO_MS = 60 * 1000;
+
 // Security: Helmet for security headers
 app.use(helmet({
     contentSecurityPolicy: {
@@ -70,7 +73,7 @@ app.use(cors(corsOptions));
 
 // Security: Rate limiting
 const limiter = rateLimit({
-    windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '15', 10) * 60 * 1000, // 15 minutes default
+    windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '15', 10) * MINUTES_TO_MS,
     max: parseInt(process.env.RATE_LIMIT_MAX || '100', 10), // limit each IP to 100 requests per windowMs
     message: 'Too many requests from this IP, please try again later.',
     standardHeaders: true,
@@ -80,7 +83,7 @@ app.use('/api/', limiter);
 
 // Security: Stricter rate limit for auth endpoints
 const authLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
+    windowMs: 15 * MINUTES_TO_MS,
     max: 5, // limit each IP to 5 login requests per windowMs
     message: 'Too many login attempts, please try again later.',
     skipSuccessfulRequests: true,
@@ -202,21 +205,16 @@ const handleValidationErrors = (req, res, next) => {
     next();
 };
 
-// Sanitize string to prevent XSS - using validator's escape
+// Sanitize string to prevent XSS - proper order: & first, then others
 const sanitizeString = (str) => {
     if (!str) return str;
-    // Remove < > and other potentially dangerous characters
+    // Escape & first to avoid double-escaping, then other dangerous characters
     return str
-        .replace(/[<>'"&]/g, (char) => {
-            const escapeMap = {
-                '<': '&lt;',
-                '>': '&gt;',
-                '"': '&quot;',
-                "'": '&#x27;',
-                '&': '&amp;'
-            };
-            return escapeMap[char] || char;
-        })
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#x27;')
         .trim();
 };
 
@@ -330,7 +328,7 @@ app.post('/api/wishes',
 
     // Additional business logic validation
     if (tmdb_type === 'tv' && season_number === undefined) {
-        console.warn('Staffelnummer fehlt für TV-Wunsch (user_id:', userId, ')');
+        console.warn('Staffelnummer fehlt für TV-Wunsch');
         return res.status(400).json({ error: 'Staffelnummer ist für Serien erforderlich.' });
     }
 
@@ -538,7 +536,7 @@ app.post('/api/admin/admins',
         db.run(`INSERT INTO admin_users (username, password) VALUES (?, ?)`, [sanitizedUsername, hash], function(err) {
             if (err) {
                 if (err.errno === 19) {
-                     console.warn(`Versuch, existierenden Admin-User '${sanitizedUsername}' zu erstellen.`);
+                     console.warn('Versuch, existierenden Admin-Benutzer zu erstellen');
                      return res.status(409).json({ error: 'Benutzername existiert bereits.' });
                 }
                 console.error('Fehler beim Erstellen des neuen Admin-Users:', err.message);
@@ -577,10 +575,10 @@ app.post('/api/admin/users',
         db.run(`INSERT INTO users (username, password) VALUES (?, ?)`, [sanitizedUsername, hash], function(err) {
             if (err) {
                  if (err.errno === 19) {
-                     console.warn(`Versuch, existierenden User '${sanitizedUsername}' zu erstellen.`);
+                     console.warn('Versuch, existierenden Benutzer zu erstellen');
                      return res.status(409).json({ error: 'Benutzername existiert bereits.' });
                  }
-                console.error('Fehler beim Erstellen des neuen User-Users:', err.message);
+                console.error('Fehler beim Erstellen des neuen Benutzers:', err.message);
                 return res.status(500).json({ error: err.message });
             }
             res.status(201).json({ id: this.lastID, username: sanitizedUsername });
