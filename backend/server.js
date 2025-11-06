@@ -70,8 +70,8 @@ app.use(cors(corsOptions));
 
 // Security: Rate limiting
 const limiter = rateLimit({
-    windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS || 15) * 60 * 1000, // 15 minutes default
-    max: parseInt(process.env.RATE_LIMIT_MAX || 100), // limit each IP to 100 requests per windowMs
+    windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '15', 10) * 60 * 1000, // 15 minutes default
+    max: parseInt(process.env.RATE_LIMIT_MAX || '100', 10), // limit each IP to 100 requests per windowMs
     message: 'Too many requests from this IP, please try again later.',
     standardHeaders: true,
     legacyHeaders: false,
@@ -202,10 +202,22 @@ const handleValidationErrors = (req, res, next) => {
     next();
 };
 
-// Sanitize string to prevent XSS
+// Sanitize string to prevent XSS - using validator's escape
 const sanitizeString = (str) => {
     if (!str) return str;
-    return str.replace(/[<>]/g, '');
+    // Remove < > and other potentially dangerous characters
+    return str
+        .replace(/[<>'"&]/g, (char) => {
+            const escapeMap = {
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#x27;',
+                '&': '&amp;'
+            };
+            return escapeMap[char] || char;
+        })
+        .trim();
 };
 
 // --- Middleware zur User-Authentifizierung ---
@@ -275,7 +287,7 @@ app.post('/api/users/login',
             return res.status(500).json({ error: 'Interner Serverfehler' });
         }
         if (!user) {
-             console.warn(`User Login-Versuch fehlgeschlagen: User '${username}' nicht gefunden.`);
+             console.warn('User Login-Versuch fehlgeschlagen: Benutzer nicht gefunden');
             return res.status(401).json({ error: 'Benutzername oder Passwort falsch' });
         }
 
@@ -285,7 +297,7 @@ app.post('/api/users/login',
                 return res.status(500).json({ error: 'Interner Serverfehler' });
             }
             if (!isMatch) {
-                 console.warn(`User Login-Versuch fehlgeschlagen: Falsches Passwort für User '${username}'.`);
+                 console.warn('User Login-Versuch fehlgeschlagen: Falsches Passwort');
                 return res.status(401).json({ error: 'Benutzername oder Passwort falsch' });
             }
 
@@ -318,7 +330,7 @@ app.post('/api/wishes',
 
     // Additional business logic validation
     if (tmdb_type === 'tv' && season_number === undefined) {
-        console.warn('Staffelnummer fehlt für TV-Wunsch:', req.body);
+        console.warn('Staffelnummer fehlt für TV-Wunsch (user_id:', userId, ')');
         return res.status(400).json({ error: 'Staffelnummer ist für Serien erforderlich.' });
     }
 
@@ -434,7 +446,7 @@ app.post('/api/admin/login',
             return res.status(500).json({ error: 'Interner Serverfehler' });
         }
         if (!admin) {
-            console.warn(`Admin Login-Versuch fehlgeschlagen: Admin '${sanitizedUsername}' nicht gefunden.`);
+            console.warn('Admin Login-Versuch fehlgeschlagen: Administrator nicht gefunden');
             return res.status(401).json({ error: 'Benutzername oder Passwort falsch' });
         }
 
@@ -444,7 +456,7 @@ app.post('/api/admin/login',
                 return res.status(500).json({ error: 'Interner Serverfehler' });
             }
             if (!isMatch) {
-                 console.warn(`Admin Login-Versuch fehlgeschlagen: Falsches Passwort für Admin '${sanitizedUsername}'.`);
+                 console.warn('Admin Login-Versuch fehlgeschlagen: Falsches Passwort');
                 return res.status(401).json({ error: 'Benutzername oder Passwort falsch' });
             }
 
