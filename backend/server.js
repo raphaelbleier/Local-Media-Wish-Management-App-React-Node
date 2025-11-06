@@ -565,7 +565,7 @@ app.post('/api/admin/users',
         db.run(`INSERT INTO users (username, password) VALUES (?, ?)`, [sanitizedUsername, hash], function(err) {
             if (err) {
                  if (err.errno === 19) {
-                     console.warn(`Versuch, existierenden User '${username}' zu erstellen.`);
+                     console.warn(`Versuch, existierenden User '${sanitizedUsername}' zu erstellen.`);
                      return res.status(409).json({ error: 'Benutzername existiert bereits.' });
                  }
                 console.error('Fehler beim Erstellen des neuen User-Users:', err.message);
