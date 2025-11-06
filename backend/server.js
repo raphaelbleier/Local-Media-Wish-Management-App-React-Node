@@ -606,7 +606,17 @@ app.get('/api/admin/stats', authenticateAdmin, (req, res) => {
 
 // --- Frontend statische Dateien servieren ---
 const frontendBuildPath = path.join(__dirname, '../frontend/dist');
-app.use(express.static(frontendBuildPath));
+
+// Rate limiter for static files
+const staticFileLimiter = rateLimit({
+    windowMs: 1 * 60 * 1000, // 1 minute
+    max: 100, // limit each IP to 100 requests per minute for static files
+    message: 'Too many requests for static files, please try again later.',
+    standardHeaders: true,
+    legacyHeaders: false,
+});
+
+app.use(express.static(frontendBuildPath, { maxAge: '1d' }));
 
 // --- Global Error Handler ---
 app.use((err, req, res, next) => {
@@ -630,8 +640,8 @@ app.use('/api/*', (req, res) => {
     res.status(404).json({ error: 'API endpoint not found' });
 });
 
-// Catch-all for frontend routes
-app.get('*', (req, res) => {
+// Catch-all for frontend routes with rate limiting
+app.get('*', staticFileLimiter, (req, res) => {
     res.sendFile(path.join(frontendBuildPath, 'index.html'));
 });
 
