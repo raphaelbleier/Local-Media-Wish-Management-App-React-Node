@@ -268,6 +268,9 @@ const authenticateAdmin = (req, res, next) => {
 // --- API Endpoints für normale Benutzer ---
 
 // User Login with validation and rate limiting
+// Note: Password strength validation (8+ chars, etc.) is only enforced during account creation,
+// not during login. This is standard security practice - we only need to verify the password
+// matches the stored hash during login.
 app.post('/api/users/login', 
     authLimiter,
     [
@@ -427,6 +430,8 @@ app.get('/api/search-tmdb',
 // --- API Endpoints für Administratoren (Benötigen Admin Auth) ---
 
 // Admin Login with validation and rate limiting
+// Note: Password strength validation (8+ chars, etc.) is only enforced during account creation,
+// not during login. This allows existing admins to login regardless of password complexity.
 app.post('/api/admin/login',
     authLimiter,
     [
