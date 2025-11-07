@@ -1,129 +1,432 @@
-# Local Media Wish Management App (React/Node.js)
+# Local Media Wish Management App
 
-Dies ist eine einfache Webanwendung zur lokalen Verwaltung von Film- und Serienwünschen mit Benutzerauthentifizierung und TMDb-Integration für die Suche und Anzeige von Medieninformationen. 
-Die App ist für die Nutzung in einem lokalen Netzwerk gedacht.
+A secure, production-ready web application for managing movie and TV show wish lists with user authentication and TMDb integration. Designed for local network deployment with enterprise-grade security features.
 
-## Features
+[![Node.js](https://img.shields.io/badge/Node.js-20.x-green.svg)](https://nodejs.org/)
+[![React](https://img.shields.io/badge/React-18.x-blue.svg)](https://reactjs.org/)
+[![Express](https://img.shields.io/badge/Express-4.x-lightgrey.svg)](https://expressjs.com/)
 
-*   **Benutzerauthentifizierung:** Benutzer müssen sich anmelden, um Wünsche hinzuzufügen und ihre eigenen Wünsche anzuzeigen.
-*   **Admin-Bereich:** Administratoren können alle Wünsche einsehen, den Status ändern, normale Benutzer erstellen und grundlegende Statistiken anzeigen.
-*   **TMDb-Integration:** Suche nach Filmen und Serien über die TMDb-API mit Autocomplete, Anzeige von Covern, Erscheinungsjahr und Medientyp.
-*   **Staffelwahl:** Beim Hinzufügen einer Serie kann der Benutzer eine spezifische Staffel oder "alle Staffeln" angeben.
-*   **Statusverwaltung:** Wünsche haben den Status "Offen" oder "Erledigt".
-*   **Einfache Statistiken:** Anzeige der Anzahl offener/erledigter/gesamt Wünsche für Administratoren.
-*   **Theme-Umschaltung:** Light- und Dark-Mode für das UI.
-*   **Lokale Datenhaltung:** Alle Daten werden in einer lokalen SQLite-Datenbank gespeichert.
+## ✨ Features
 
-## Technologien
+### Core Functionality
+- **User Authentication**: Secure login system with JWT tokens and bcrypt password hashing
+- **Admin Dashboard**: Full administrative control with user management and statistics
+- **TMDb Integration**: Search movies and TV shows with autocomplete, displaying covers, release years, and media types
+- **Season Selection**: For TV shows, specify individual seasons or "all seasons"
+- **Status Management**: Track wishes as "Open" or "Completed"
+- **Statistics Dashboard**: View counts of open/completed/total wishes for administrators
+- **Theme Toggle**: Light and dark mode support
+- **Local Data Storage**: All data stored in a local SQLite database
 
-*   **Frontend:** React (mit Vite)
-*   **Backend:** Node.js (mit Express.js)
-*   **Datenbank:** SQLite
-*   **API:** The Movie Database (TMDb) API
+### Security Features (NEW! 🔒)
+- **Helmet.js**: Security headers (CSP, XSS protection, etc.)
+- **Rate Limiting**: Protection against brute force attacks
+  - General API: 100 requests per 15 minutes
+  - Auth endpoints: 5 login attempts per 15 minutes
+- **Input Validation**: Comprehensive validation using express-validator
+- **Input Sanitization**: XSS prevention through input sanitization
+- **Password Strength**: Enforced minimum 8 characters with letters and numbers
+- **CORS Configuration**: Environment-based origin restrictions
+- **Request Size Limits**: 10kb limit to prevent payload attacks
+- **Parameterized Queries**: SQL injection prevention
+- **Request Logging**: Morgan for production monitoring
+- **Environment Validation**: Startup checks for required configuration
 
-## Voraussetzungen
+## 🛠 Technology Stack
 
-*   Node.js (inklusive npm oder yarn) installiert. Du kannst es von [https://nodejs.org/](https://nodejs.org/) herunterladen.
-*   Git installiert.
+| Component | Technology |
+|-----------|------------|
+| **Frontend** | React 18 with Vite |
+| **Backend** | Node.js with Express.js |
+| **Database** | SQLite |
+| **API** | The Movie Database (TMDb) API |
+| **Security** | Helmet, Rate Limiting, JWT, bcrypt |
 
-## Installation und Setup
+## 📋 Prerequisites
 
-Führe die folgenden Schritte aus, um die Anwendung lokal einzurichten und zu starten:
+- **Node.js** (v20.x or higher) with npm - [Download](https://nodejs.org/)
+- **Git** - [Download](https://git-scm.com/)
+- **TMDb API Key** - Free registration at [themoviedb.org](https://www.themoviedb.org/)
 
-1.  **Repository klonen:**
-    ```bash
-    git clone "https://github.com/raphaelbleier/Local-Media-Wish-Management-App-React-Node"
-    cd Local-Media-Wish-Management-App-React-Node
-    ```
+## 🚀 Installation and Setup
 
-2.  **TMDb API Schlüssel beschaffen:**
-    *   Du benötigst einen API-Schlüssel von The Movie Database (TMDb). Wenn du noch keinen hast:
-        *   Registriere dich auf [https://www.themoviedb.org/account/signup](https://www.themoviedb.org/account/signup).
-        *   Gehe zu deinen Account-Einstellungen und dann zum Bereich "API".
-        *   Registriere eine neue Developer API. Du benötigst den **API Read Access Token (v4 Auth)**. Dieser sieht so aus: `eyJhbGciOiJIUzI1NiI...`.
+### 1. Clone the Repository
 
-3.  **Backend Setup:**
-    *   Navigiere in das Backend-Verzeichnis:
-        ```bash
-        cd backend
-        ```
-    *   Erstelle eine `.env`-Datei im `backend`-Verzeichnis und füge deine geheimen Schlüssel hinzu. Ersetze die Platzhalter durch deine tatsächlichen Werte.
-        ```env
-        # .env Datei im backend Ordner erstellen
+```bash
+git clone "https://github.com/raphaelbleier/Local-Media-Wish-Management-App-React-Node"
+cd Local-Media-Wish-Management-App-React-Node
+```
 
-        # Geheimer Schlüssel für JWT (Wähle eine lange, zufällige Zeichenkette!)
-        JWT_SECRET=Deine_sehr_geheime_und_zufaellige_JWT_Zeichenkette
+### 2. Obtain TMDb API Key
 
-        # Dein TMDb API Read Access Token (v4 Auth)
-        TMDB_API_READ_TOKEN=Dein_vollstaendiger_TMDb_v4_Read_Access_Token
-        ```
-        **Wichtig:** Wähle eine andere, sichere Zeichenkette für `JWT_SECRET` als die Standardwerte in den Beispielen. Füge deinen **vollständigen** TMDb v4 Token ein.
-    *   Installiere die Backend-Abhängigkeiten:
-        ```bash
-        npm install
-        # oder mit yarn: yarn install
-        ```
-    *   Die SQLite-Datenbank (`database.sqlite`) wird beim ersten Start des Backends automatisch erstellt. **Wenn du eine frühere Version ohne das TMDb-Schema hattest und die database.sqlite Datei existiert, lösche sie bitte vor dem ersten Start, um das neue Schema zu erstellen.**
+1. Register at [themoviedb.org](https://www.themoviedb.org/account/signup)
+2. Navigate to Account Settings → API
+3. Register a new Developer API
+4. Copy your **API Read Access Token (v4 Auth)** (starts with `eyJhbGciOiJIUzI1NiI...`)
 
-4.  **Frontend Setup:**
-    *   Navigiere in das Frontend-Verzeichnis:
-        ```bash
-        cd ../frontend
-        ```
-    *   Installiere die Frontend-Abhängigkeiten:
-        ```bash
-        npm install
-        # oder mit yarn: yarn install
-        ```
-    *   Das Frontend ist standardmäßig so konfiguriert, dass es während der Entwicklung über einen Proxy auf die API-Endpunkte des Backends zugreift, das auf `http://localhost:3001` laufen sollte (siehe `frontend/vite.config.js`). **Normalerweise musst du hier keine Codeänderungen vornehmen, wenn Backend und Frontend auf demselben Computer laufen.**
+### 3. Backend Setup
 
-## Anwendung starten
+```bash
+cd backend
+```
 
-1.  **Backend starten:**
-    *   Öffne ein neues Terminal-Fenster.
-    *   Navigiere in das Backend-Verzeichnis (`./backend`).
-    *   Starte den Server:
-        ```bash
-        npm start
-        ```
-    *   Du solltest im Terminal sehen, dass die Datenbank initialisiert wird (falls neu) und der Server auf Port 3001 startet.
+#### Install Dependencies
 
-2.  **Frontend starten:**
-    *   Öffne ein weiteres neues Terminal-Fenster.
-    *   Navigiere in das Frontend-Verzeichnis (`./frontend`).
-    *   Starte den Entwicklungsserver:
-        ```bash
-        npm run dev
-        ```
-    *   Der Vite-Entwicklungsserver startet (normalerweise auf Port 3000) und öffnet die Anwendung im Browser.
+```bash
+npm install
+```
 
-3.  **App im Browser aufrufen:**
-    *   Öffne deinen Webbrowser und gehe zu `http://localhost:3000`.
+#### Configure Environment Variables
 
-## Erste Schritte
+Create a `.env` file based on the example:
 
-1.  **Admin Login:** Gehe zu `http://localhost:3000/admin`. Melde dich mit den Standard-Admin-Daten an:
-    *   Benutzername: `admin`
-    *   Passwort: `admin`
-    **(Ändere das Standardpasswort in einer realen Anwendung umgehend!)**
-2.  **Benutzer erstellen:** Navigiere im Admin-Bereich zu "User erstellen" und erstelle Benutzerkonten für die Personen, die Wünsche hinzufügen sollen.
-3.  **Benutzer Login:** Melde dich als Admin ab und gehe zurück zur Startseite (`http://localhost:3000/`). Melde dich mit einem der neu erstellten Benutzerkonten an.
-4.  **Wünsche hinzufügen:** Im Benutzerbereich kannst du nun Film- oder Serientitel suchen, auswählen und Wünsche speichern.
-5.  **Admin-Panel:** Logge dich wieder als Admin ein, um alle Wünsche zu sehen, als "Erledigt" zu markieren und Statistiken einzusehen.
+```bash
+cp .env.example .env
+```
 
-## Zugriff im lokalen Netzwerk
+Edit `.env` and configure the following **required** variables:
 
-Wenn du die App von anderen Geräten in deinem lokalen Netzwerk erreichen möchtest:
+```env
+# Generate a secure JWT secret (32+ characters recommended)
+JWT_SECRET=your_secure_random_jwt_secret_here
 
-1.  Stelle sicher, dass sowohl der Computer, auf dem das Backend läuft (`npm start`), als auch das zugreifende Gerät im selben lokalen Netzwerk sind.
-2.  Ermittle die lokale IP-Adresse des Computers, auf dem das Backend läuft (z.B. `192.168.1.100`).
-3.  Greife von anderen Geräten über die IP-Adresse und den Backend-Port zu: `http://<Lokale_IP>:3001`.
-4.  Möglicherweise musst du Firewall-Regeln auf dem Backend-Computer anpassen, um eingehende Verbindungen auf Port 3001 zuzulassen.
+# Your TMDb API Read Access Token
+TMDB_API_READ_TOKEN=your_tmdb_api_token_here
 
-## Wichtige Sicherheitshinweise (Für den lokalen Gebrauch)
+# IMPORTANT: Set a secure admin password (not 'admin'!)
+DEFAULT_ADMIN_PASSWORD=your_secure_admin_password
+```
 
-Diese App ist für die lokale Nutzung konzipiert.
+**Security Best Practices:**
+- Generate a strong JWT_SECRET: `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`
+- Use a password manager to generate DEFAULT_ADMIN_PASSWORD
+- Never commit the `.env` file to version control
 
-*   **NICHT für den Einsatz im öffentlichen Internet geeignet!** Sicherheitsmaßnahmen (Passwort-Hashing, Token-Handling, Input-Validierung, Rate Limiting etc.) sind stark vereinfacht.
-*   Der Standard-Admin (`admin`/`admin`) ist unsicher. Für den privaten Gebrauch in einem vertrauenswürdigen lokalen Netzwerk ist es jedoch gut genug
-*   Der TMDb API-Schlüssel wird zwar im Backend verwaltet, sollte aber dennoch nicht öffentlich geteilt werden, falls dein Rate Limit für diesen Schlüssel überschritten wird.
+#### Optional Configuration
+
+```env
+# Server port (default: 3001)
+PORT=3001
+
+# Environment (development/production)
+NODE_ENV=production
+
+# CORS origins (comma-separated)
+CORS_ORIGINS=http://localhost:3000,https://yourdomain.com
+
+# Rate limiting
+RATE_LIMIT_MAX=100
+RATE_LIMIT_WINDOW_MS=15
+
+# JWT expiry
+JWT_EXPIRY=24h
+```
+
+### 4. Frontend Setup
+
+```bash
+cd ../frontend
+npm install
+```
+
+The frontend is pre-configured to proxy to `http://localhost:3001` during development (see `vite.config.js`).
+
+## 🎯 Running the Application
+
+### Development Mode
+
+#### Start Backend (Terminal 1)
+
+```bash
+cd backend
+npm start
+# or for auto-reload: npm run dev
+```
+
+Expected output:
+```
+✅ Backend läuft auf http://localhost:3001
+📝 Environment: development
+🔒 Security features enabled: Helmet, Rate Limiting, Input Validation
+```
+
+#### Start Frontend (Terminal 2)
+
+```bash
+cd frontend
+npm run dev
+```
+
+Vite will start on `http://localhost:3000` (or the next available port).
+
+### Production Mode
+
+#### Build Frontend
+
+```bash
+cd frontend
+npm run build
+```
+
+#### Start Backend
+
+```bash
+cd backend
+NODE_ENV=production npm start
+```
+
+The backend will serve the built frontend from `backend/../frontend/dist`.
+
+### Access the Application
+
+- **User Interface**: `http://localhost:3000` (dev) or `http://localhost:3001` (production)
+- **Admin Interface**: `http://localhost:3000/admin`
+
+## 👤 First Steps
+
+### 1. Admin Login
+
+Navigate to `/admin` and login with:
+- **Username**: `admin`
+- **Password**: Your `DEFAULT_ADMIN_PASSWORD` from `.env`
+
+**⚠️ IMPORTANT**: Change the default admin password immediately by creating a new admin account!
+
+### 2. Create Users
+
+In the Admin Dashboard:
+1. Navigate to "User erstellen" (Create User)
+2. Create user accounts with secure passwords
+3. Users must have passwords with:
+   - Minimum 8 characters
+   - At least one letter
+   - At least one number
+
+### 3. User Operations
+
+1. Logout from admin
+2. Login as a regular user at `/`
+3. Search for movies/TV shows
+4. Add wishes to your list
+
+### 4. Admin Management
+
+As admin, you can:
+- View all user wishes
+- Mark wishes as "Completed"
+- View statistics (open/completed/total wishes)
+- Create new users and admins
+
+## 🌐 Local Network Access
+
+To access from other devices on your network:
+
+### 1. Find Your Local IP
+
+**Windows:**
+```bash
+ipconfig
+```
+
+**macOS/Linux:**
+```bash
+ifconfig
+# or
+ip addr show
+```
+
+Look for your local IP (e.g., `192.168.1.100`)
+
+### 2. Update CORS Configuration
+
+Add your local IP to `backend/.env`:
+
+```env
+CORS_ORIGINS=http://localhost:3000,http://192.168.1.100:3001
+```
+
+### 3. Configure Firewall
+
+Allow incoming connections on port 3001:
+
+**Windows:**
+```bash
+netsh advfirewall firewall add rule name="Media Wish App" dir=in action=allow protocol=TCP localport=3001
+```
+
+**Linux (ufw):**
+```bash
+sudo ufw allow 3001/tcp
+```
+
+### 4. Access from Network Devices
+
+Navigate to `http://192.168.1.100:3001` from other devices on your network.
+
+## 🔒 Security Considerations
+
+### For Local Network Use
+
+This application includes enterprise-grade security features suitable for local network deployment:
+
+✅ **Implemented Security**:
+- Password hashing with bcrypt
+- JWT authentication
+- Rate limiting (brute force protection)
+- Input validation and sanitization
+- SQL injection prevention
+- XSS protection via Helmet
+- CORS configuration
+- Request size limits
+- Security headers
+
+### For Production/Internet Deployment
+
+**Additional requirements before internet exposure:**
+
+❗ **Required**:
+- [ ] HTTPS/TLS encryption (use nginx or similar reverse proxy)
+- [ ] Environment-specific configuration
+- [ ] Regular security updates
+- [ ] Database backups
+- [ ] Monitoring and alerting
+- [ ] Enhanced password policies (uppercase, special characters)
+- [ ] Session management improvements
+- [ ] CSRF protection
+- [ ] Account lockout after failed attempts
+- [ ] Email verification for new users
+- [ ] Audit logging
+- [ ] Content Security Policy fine-tuning
+
+### Dependency Security
+
+Check for vulnerabilities regularly:
+
+```bash
+cd backend && npm audit
+cd frontend && npm audit
+```
+
+Update dependencies:
+
+```bash
+npm audit fix
+```
+
+## 📁 Project Structure
+
+```
+Local-Media-Wish-Management-App-React-Node/
+├── backend/
+│   ├── server.js              # Main server file with security features
+│   ├── package.json           # Backend dependencies
+│   ├── .env.example           # Environment template
+│   ├── .env                   # Your configuration (not in git)
+│   └── database.sqlite        # SQLite database (auto-created)
+├── frontend/
+│   ├── src/
+│   │   ├── components/        # React components
+│   │   ├── App.jsx           # Main app component
+│   │   └── main.jsx          # Entry point
+│   ├── package.json          # Frontend dependencies
+│   └── vite.config.js        # Vite configuration
+└── README.md                 # This file
+```
+
+## 🐛 Troubleshooting
+
+### Backend won't start
+
+**Error: Missing environment variables**
+```
+❌ ERROR: Missing required environment variables: JWT_SECRET, TMDB_API_READ_TOKEN
+```
+**Solution**: Create `.env` file with required variables (see step 3)
+
+### Database errors
+
+**Error: Old schema detected**
+```
+ACHTUNG: Wenn die Tabelle bereits mit einem älteren Schema existiert...
+```
+**Solution**: Delete `database.sqlite` and restart the backend
+
+### CORS errors in browser
+
+**Error: Not allowed by CORS**
+**Solution**: Add your frontend URL to `CORS_ORIGINS` in `.env`
+
+### Rate limit errors
+
+**Error: Too many requests**
+**Solution**: Wait 15 minutes or adjust `RATE_LIMIT_MAX` in `.env`
+
+### Admin login fails
+
+**Check**: Using the password from `DEFAULT_ADMIN_PASSWORD` in `.env`?
+
+## 📝 API Documentation
+
+### Authentication Endpoints
+
+| Method | Endpoint | Description | Auth Required |
+|--------|----------|-------------|---------------|
+| POST | `/api/users/login` | User login | No |
+| POST | `/api/admin/login` | Admin login | No |
+
+### User Endpoints
+
+| Method | Endpoint | Description | Auth Required |
+|--------|----------|-------------|---------------|
+| GET | `/api/wishes/me` | Get current user's wishes | User |
+| POST | `/api/wishes` | Create new wish | User |
+
+### Admin Endpoints
+
+| Method | Endpoint | Description | Auth Required |
+|--------|----------|-------------|---------------|
+| GET | `/api/admin/wishes` | Get all wishes | Admin |
+| PUT | `/api/admin/wishes/:id` | Update wish status | Admin |
+| POST | `/api/admin/users` | Create new user | Admin |
+| POST | `/api/admin/admins` | Create new admin | Admin |
+| GET | `/api/admin/stats` | Get statistics | Admin |
+
+### Search Endpoint
+
+| Method | Endpoint | Description | Auth Required |
+|--------|----------|-------------|---------------|
+| GET | `/api/search-tmdb?query=...` | Search TMDb | No |
+
+## 🤝 Contributing
+
+Contributions are welcome! Please ensure:
+- Code follows existing style
+- Security best practices are maintained
+- All tests pass
+- Documentation is updated
+
+## 📄 License
+
+ISC License - See package.json for details
+
+## 👨‍💻 Author
+
+Raphael Bleier
+
+## 🙏 Acknowledgments
+
+- [The Movie Database (TMDb)](https://www.themoviedb.org/) for the API
+- [Express.js](https://expressjs.com/) for the backend framework
+- [React](https://reactjs.org/) for the frontend framework
+- [Helmet.js](https://helmetjs.github.io/) for security headers
+
+## 📞 Support
+
+For issues and questions:
+1. Check the [Troubleshooting](#-troubleshooting) section
+2. Review [GitHub Issues](https://github.com/raphaelbleier/Local-Media-Wish-Management-App-React-Node/issues)
+3. Create a new issue with details about your problem
+
+---
+
+**⚠️ Security Notice**: This application is designed for local network use. While it includes robust security features, additional hardening is required before internet deployment. See [Security Considerations](#-security-considerations) for details.

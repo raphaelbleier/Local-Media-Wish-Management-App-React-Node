@@ -1,7 +1,7 @@
 {
   "name": "wuensche-app-backend",
   "version": "1.0.0",
-  "description": "Backend for Wish Management App",
+  "description": "Secure backend for Local Media Wish Management App with TMDb integration",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
@@ -12,14 +12,26 @@
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
+    "express-rate-limit": "^8.2.1",
+    "express-validator": "^7.3.0",
+    "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.2",
+    "morgan": "^1.10.1",
     "node-fetch": "^3.3.2",
     "sqlite3": "^5.1.7"
   },
   "devDependencies": {
     "nodemon": "^3.1.0"
   },
-  "keywords": [],
-  "author": "",
+  "keywords": [
+    "media-management",
+    "wishlist",
+    "tmdb",
+    "express",
+    "sqlite",
+    "jwt",
+    "security"
+  ],
+  "author": "Raphael Bleier",
   "license": "ISC"
 }

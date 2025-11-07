@@ -1,4 +1,4 @@
-// C:\Users\PC1\Desktop\wuensche-app-ui\backend\server.js
+// backend/server.js
 
 require('dotenv').config();
 
@@ -8,21 +8,97 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const cors = require('cors');
 const path = require('path');
-const fetch = require('node-fetch').default; // <--- Diese Zeile ist entscheidend!
-console.log('Type of fetch after require:', typeof fetch);
+const fetch = require('node-fetch').default;
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
+const { body, query, param, validationResult } = require('express-validator');
+const morgan = require('morgan');
 
+// Environment validation
+const requiredEnvVars = ['JWT_SECRET', 'TMDB_API_READ_TOKEN'];
+const missingEnvVars = requiredEnvVars.filter(varName => !process.env[varName]);
+
+if (missingEnvVars.length > 0) {
+    console.error(`❌ ERROR: Missing required environment variables: ${missingEnvVars.join(', ')}`);
+    console.error('Please create a .env file based on .env.example');
+    process.exit(1);
+}
 
 const app = express();
 const port = process.env.PORT || 3001;
 const dbPath = path.resolve(__dirname, 'database.sqlite');
 const JWT_SECRET = process.env.JWT_SECRET;
-const TMDB_API_READ_TOKEN = process.env.TMDB_API_READ_TOKEN; // TMDb API Key aus .env
+const TMDB_API_READ_TOKEN = process.env.TMDB_API_READ_TOKEN;
+const JWT_EXPIRY = process.env.JWT_EXPIRY || '24h';
+const NODE_ENV = process.env.NODE_ENV || 'development';
+const isProduction = NODE_ENV === 'production';
 
 const TMDB_API_BASE_URL = 'https://api.themoviedb.org/3';
 
-// ⚠️ WICHTIG: CORS in Produktion einschränken!
-app.use(cors());
-app.use(express.json());
+// Constants for time conversions
+const MINUTES_TO_MS = 60 * 1000;
+
+// Security: Helmet for security headers
+app.use(helmet({
+    contentSecurityPolicy: {
+        directives: {
+            defaultSrc: ["'self'"],
+            styleSrc: ["'self'", "'unsafe-inline'"],
+            scriptSrc: ["'self'"],
+            imgSrc: ["'self'", "data:", "https://image.tmdb.org"],
+        },
+    },
+}));
+
+// Security: CORS configuration based on environment
+const corsOptions = {
+    origin: function (origin, callback) {
+        const allowedOrigins = process.env.CORS_ORIGINS
+            ? process.env.CORS_ORIGINS.split(',')
+            : ['http://localhost:3000', 'http://localhost:5173'];
+        
+        // Allow requests with no origin (like mobile apps or curl)
+        if (!origin) return callback(null, true);
+        
+        if (allowedOrigins.indexOf(origin) !== -1 || !isProduction) {
+            callback(null, true);
+        } else {
+            callback(new Error('Not allowed by CORS'));
+        }
+    },
+    credentials: true,
+    optionsSuccessStatus: 200
+};
+app.use(cors(corsOptions));
+
+// Security: Rate limiting
+const limiter = rateLimit({
+    windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '15', 10) * MINUTES_TO_MS,
+    max: parseInt(process.env.RATE_LIMIT_MAX || '100', 10), // limit each IP to 100 requests per windowMs
+    message: 'Too many requests from this IP, please try again later.',
+    standardHeaders: true,
+    legacyHeaders: false,
+});
+app.use('/api/', limiter);
+
+// Security: Stricter rate limit for auth endpoints
+const authLimiter = rateLimit({
+    windowMs: 15 * MINUTES_TO_MS,
+    max: 5, // limit each IP to 5 login requests per windowMs
+    message: 'Too many login attempts, please try again later.',
+    skipSuccessfulRequests: true,
+});
+
+// Logging
+if (isProduction) {
+    app.use(morgan('combined'));
+} else {
+    app.use(morgan('dev'));
+}
+
+// Body parsing with size limits
+app.use(express.json({ limit: '10kb' }));
+app.use(express.urlencoded({ extended: true, limit: '10kb' }));
 
 // --- Datenbank-Initialisierung (Schema angepasst!) ---
 const db = new sqlite3.Database(dbPath, (err) => {
@@ -73,7 +149,7 @@ const db = new sqlite3.Database(dbPath, (err) => {
                 } else {
                     console.log('Admin_users Tabelle geprüft/erstellt.');
                     const defaultUsername = 'admin';
-                    const defaultPassword = 'admin'; // ⚠️ NUR FÜR DEMO!
+                    const defaultPassword = process.env.DEFAULT_ADMIN_PASSWORD || 'admin'; // Allow override via env
                     const saltRounds = 10;
 
                     db.get("SELECT id FROM admin_users WHERE username = ?", [defaultUsername], (err, row) => {
@@ -104,6 +180,43 @@ const db = new sqlite3.Database(dbPath, (err) => {
         });
     }
 });
+
+// --- Helper Functions ---
+
+// Password validation
+const validatePassword = (password) => {
+    // Minimum 8 characters, at least one letter and one number
+    const minLength = 8;
+    const hasLetter = /[a-zA-Z]/.test(password);
+    const hasNumber = /\d/.test(password);
+    
+    return password.length >= minLength && hasLetter && hasNumber;
+};
+
+// Validation error handler
+const handleValidationErrors = (req, res, next) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return res.status(400).json({ 
+            error: 'Validation failed',
+            details: errors.array().map(err => err.msg)
+        });
+    }
+    next();
+};
+
+// Sanitize string to prevent XSS - proper order: & first, then others
+const sanitizeString = (str) => {
+    if (!str) return str;
+    // Escape & first to avoid double-escaping, then other dangerous characters
+    return str
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#x27;')
+        .trim();
+};
 
 // --- Middleware zur User-Authentifizierung ---
 const authenticateUser = (req, res, next) => {
@@ -154,17 +267,28 @@ const authenticateAdmin = (req, res, next) => {
 
 // --- API Endpoints für normale Benutzer ---
 
-// User Login (Unverändert)
-app.post('/api/users/login', (req, res) => {
+// User Login with validation and rate limiting
+// Note: Password strength validation (8+ chars, etc.) is only enforced during account creation,
+// not during login. This is standard security practice - we only need to verify the password
+// matches the stored hash during login.
+app.post('/api/users/login', 
+    authLimiter,
+    [
+        body('username').trim().isLength({ min: 1, max: 50 }).withMessage('Username is required and must be between 1-50 characters'),
+        body('password').isLength({ min: 1 }).withMessage('Password is required')
+    ],
+    handleValidationErrors,
+    (req, res) => {
     const { username, password } = req.body;
+    const sanitizedUsername = sanitizeString(username);
 
-    db.get(`SELECT id, username, password FROM users WHERE username = ?`, [username], (err, user) => {
+    db.get(`SELECT id, username, password FROM users WHERE username = ?`, [sanitizedUsername], (err, user) => {
         if (err) {
             console.error('Fehler beim Suchen des Users:', err.message);
             return res.status(500).json({ error: 'Interner Serverfehler' });
         }
         if (!user) {
-             console.warn(`User Login-Versuch fehlgeschlagen: User '${username}' nicht gefunden.`);
+             console.warn('User Login-Versuch fehlgeschlagen: Benutzer nicht gefunden');
             return res.status(401).json({ error: 'Benutzername oder Passwort falsch' });
         }
 
@@ -174,48 +298,46 @@ app.post('/api/users/login', (req, res) => {
                 return res.status(500).json({ error: 'Interner Serverfehler' });
             }
             if (!isMatch) {
-                 console.warn(`User Login-Versuch fehlgeschlagen: Falsches Passwort für User '${username}'.`);
+                 console.warn('User Login-Versuch fehlgeschlagen: Falsches Passwort');
                 return res.status(401).json({ error: 'Benutzername oder Passwort falsch' });
             }
 
-            const token = jwt.sign({ id: user.id, username: user.username, role: 'user' }, JWT_SECRET, { expiresIn: '1h' });
+            const token = jwt.sign({ id: user.id, username: user.username, role: 'user' }, JWT_SECRET, { expiresIn: JWT_EXPIRY });
             res.json({ token, username: user.username });
         });
     });
 });
 
-// Wunsch erstellen (Benötigt User Auth, akzeptiert neue Felder)
-app.post('/api/wishes', authenticateUser, (req, res) => {
-    // Erwarte die neuen Felder vom Frontend
+// Wunsch erstellen (with validation)
+app.post('/api/wishes', 
+    authenticateUser,
+    [
+        body('tmdb_id').isInt({ min: 1 }).withMessage('Valid TMDb ID is required'),
+        body('tmdb_type').isIn(['movie', 'tv']).withMessage('Type must be movie or tv'),
+        body('original_title').trim().isLength({ min: 1, max: 500 }).withMessage('Title is required and must be between 1-500 characters'),
+        body('release_year').optional().trim().isLength({ max: 10 }),
+        body('poster_path').optional().trim().isLength({ max: 500 }),
+        body('season_number').optional().trim().isLength({ max: 50 })
+    ],
+    handleValidationErrors,
+    (req, res) => {
     const { tmdb_id, tmdb_type, original_title, release_year, poster_path, season_number } = req.body;
     const userId = req.user.id;
 
-    // Prüfe, ob die notwendigen Felder vorhanden sind (mindestens die TMDb-Daten und Titel)
-    if (!tmdb_id || !tmdb_type || !original_title) {
-         console.warn('Ungültige Wunschdaten empfangen:', req.body);
-        return res.status(400).json({ error: 'Ungültige Wunschdaten.' });
-    }
-    // Stelle sicher, dass type movie oder tv ist
-    if (tmdb_type !== 'movie' && tmdb_type !== 'tv') {
-         console.warn('Ungültiger tmdb_type empfangen:', tmdb_type);
-        return res.status(400).json({ error: 'Ungültiger Medien-Typ.' });
-    }
-    // Für TV-Shows muss season_number vorhanden sein (kann aber leer sein oder 'alle Staffeln')
-     if (tmdb_type === 'tv' && season_number === undefined) { // Prüfe auf undefined, da '' oder null gültig sein könnte
-         console.warn('Staffelnummer fehlt für TV-Wunsch:', req.body);
-         return res.status(400).json({ error: 'Staffelnummer ist für Serien erforderlich.' });
-     }
-     // Für Movies darf season_number NICHT gesetzt sein
-     if (tmdb_type === 'movie' && season_number !== undefined && season_number !== null && season_number !== '') {
-         console.warn('Staffelnummer bei Filmwunsch gesendet:', req.body);
-          // Lasse es für den Moment zu, aber logge es als Warnung
-          // return res.status(400).json({ error: 'Staffelnummer nicht für Filme erlaubt.' });
-     }
+    // Sanitize inputs
+    const sanitizedTitle = sanitizeString(original_title);
+    const sanitizedYear = release_year ? sanitizeString(release_year) : null;
+    const sanitizedSeason = season_number ? sanitizeString(season_number) : null;
 
+    // Additional business logic validation
+    if (tmdb_type === 'tv' && season_number === undefined) {
+        console.warn('Staffelnummer fehlt für TV-Wunsch');
+        return res.status(400).json({ error: 'Staffelnummer ist für Serien erforderlich.' });
+    }
 
     db.run(`INSERT INTO wuensche (user_id, tmdb_id, tmdb_type, original_title, release_year, poster_path, season_number, status)
            VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-           [userId, tmdb_id, tmdb_type, original_title, release_year, poster_path, season_number || null, 'Offen'], // season_number null setzen, falls leer oder undefined
+           [userId, tmdb_id, tmdb_type, sanitizedTitle, sanitizedYear, poster_path, sanitizedSeason, 'Offen'],
            function(err) {
         if (err) {
             console.error('Fehler beim Speichern des Wunsches:', err.message);
@@ -253,22 +375,23 @@ app.get('/api/wishes/me', authenticateUser, (req, res) => {
 });
 
 
-// --- API Endpoint für TMDb Suche (Keine Auth nötig, da nur Proxy) ---
-app.get('/api/search-tmdb', async (req, res) => {
-    const query = req.query.query;
-    if (!query) {
-        return res.status(400).json({ error: 'Suchbegriff fehlt.' });
-    }
+// --- API Endpoint für TMDb Suche with validation ---
+app.get('/api/search-tmdb', 
+    [query('query').trim().isLength({ min: 1, max: 100 }).withMessage('Search query must be between 1-100 characters')],
+    handleValidationErrors,
+    async (req, res) => {
+    const searchQuery = req.query.query;
+    const sanitizedQuery = sanitizeString(searchQuery);
 
     if (!TMDB_API_READ_TOKEN) {
          console.error("TMDB_API_READ_TOKEN ist nicht in der .env Datei gesetzt!");
          return res.status(500).json({ error: 'Serverfehler: API-Schlüssel fehlt.' });
     }
 
-    const url = `${TMDB_API_BASE_URL}/search/multi?query=${encodeURIComponent(query)}&language=de-DE`;
+    const url = `${TMDB_API_BASE_URL}/search/multi?query=${encodeURIComponent(sanitizedQuery)}&language=de-DE`;
 
     try {
-        const response = await fetch(url, { // <--- Hier ist der Aufruf
+        const response = await fetch(url, {
             headers: {
                 'Authorization': `Bearer ${TMDB_API_READ_TOKEN}`,
                 'Content-Type': 'application/json'
@@ -306,17 +429,27 @@ app.get('/api/search-tmdb', async (req, res) => {
 
 // --- API Endpoints für Administratoren (Benötigen Admin Auth) ---
 
-// Admin Login (Unverändert)
-app.post('/api/admin/login', (req, res) => {
+// Admin Login with validation and rate limiting
+// Note: Password strength validation (8+ chars, etc.) is only enforced during account creation,
+// not during login. This allows existing admins to login regardless of password complexity.
+app.post('/api/admin/login',
+    authLimiter,
+    [
+        body('username').trim().isLength({ min: 1, max: 50 }).withMessage('Username is required and must be between 1-50 characters'),
+        body('password').isLength({ min: 1 }).withMessage('Password is required')
+    ],
+    handleValidationErrors,
+    (req, res) => {
     const { username, password } = req.body;
+    const sanitizedUsername = sanitizeString(username);
 
-    db.get(`SELECT id, username, password FROM admin_users WHERE username = ?`, [username], (err, admin) => {
+    db.get(`SELECT id, username, password FROM admin_users WHERE username = ?`, [sanitizedUsername], (err, admin) => {
         if (err) {
             console.error('Fehler beim Suchen des Admin-Users:', err.message);
             return res.status(500).json({ error: 'Interner Serverfehler' });
         }
         if (!admin) {
-            console.warn(`Admin Login-Versuch fehlgeschlagen: Admin '${username}' nicht gefunden.`);
+            console.warn('Admin Login-Versuch fehlgeschlagen: Administrator nicht gefunden');
             return res.status(401).json({ error: 'Benutzername oder Passwort falsch' });
         }
 
@@ -326,11 +459,11 @@ app.post('/api/admin/login', (req, res) => {
                 return res.status(500).json({ error: 'Interner Serverfehler' });
             }
             if (!isMatch) {
-                 console.warn(`Admin Login-Versuch fehlgeschlagen: Falsches Passwort für Admin '${username}'.`);
+                 console.warn('Admin Login-Versuch fehlgeschlagen: Falsches Passwort');
                 return res.status(401).json({ error: 'Benutzername oder Passwort falsch' });
             }
 
-            const token = jwt.sign({ id: admin.id, username: admin.username, role: 'admin' }, JWT_SECRET, { expiresIn: '1h' });
+            const token = jwt.sign({ id: admin.id, username: admin.username, role: 'admin' }, JWT_SECRET, { expiresIn: JWT_EXPIRY });
             res.json({ token });
         });
     });
@@ -380,40 +513,62 @@ app.put('/api/admin/wishes/:wishId', authenticateAdmin, (req, res) => {
     });
 });
 
-// Neuen ADMIN-Benutzer erstellen (Admin UI) - Geschützt (Unverändert)
-app.post('/api/admin/admins', authenticateAdmin, (req, res) => {
-     const { username, password } = req.body;
-    if (!username || !password) {
-        return res.status(400).json({ error: 'Benutzername und Passwort sind erforderlich.' });
-    }
+// Neuen ADMIN-Benutzer erstellen with validation and password strength
+app.post('/api/admin/admins', 
+    authenticateAdmin,
+    [
+        body('username').trim().isLength({ min: 3, max: 50 }).withMessage('Username must be between 3-50 characters'),
+        body('password').isLength({ min: 8 }).withMessage('Password must be at least 8 characters')
+            .custom(value => {
+                if (!validatePassword(value)) {
+                    throw new Error('Password must contain at least one letter and one number');
+                }
+                return true;
+            })
+    ],
+    handleValidationErrors,
+    (req, res) => {
+    const { username, password } = req.body;
+    const sanitizedUsername = sanitizeString(username);
 
     const saltRounds = 10;
-     bcrypt.hash(password, saltRounds, (err, hash) => {
+    bcrypt.hash(password, saltRounds, (err, hash) => {
         if (err) {
             console.error('Fehler beim Hashing des neuen Admin-Passworts:', err.message);
             return res.status(500).json({ error: 'Interner Serverfehler' });
         }
 
-        db.run(`INSERT INTO admin_users (username, password) VALUES (?, ?)`, [username, hash], function(err) {
+        db.run(`INSERT INTO admin_users (username, password) VALUES (?, ?)`, [sanitizedUsername, hash], function(err) {
             if (err) {
                 if (err.errno === 19) {
-                     console.warn(`Versuch, existierenden Admin-User '${username}' zu erstellen.`);
+                     console.warn('Versuch, existierenden Admin-Benutzer zu erstellen');
                      return res.status(409).json({ error: 'Benutzername existiert bereits.' });
                 }
                 console.error('Fehler beim Erstellen des neuen Admin-Users:', err.message);
                 return res.status(500).json({ error: err.message });
             }
-            res.status(201).json({ id: this.lastID, username: username });
+            res.status(201).json({ id: this.lastID, username: sanitizedUsername });
         });
     });
 });
 
-// Neuen NORMALEN Benutzer erstellen (Admin UI) - Geschützt (Unverändert)
-app.post('/api/admin/users', authenticateAdmin, (req, res) => {
+// Neuen NORMALEN Benutzer erstellen with validation and password strength
+app.post('/api/admin/users', 
+    authenticateAdmin,
+    [
+        body('username').trim().isLength({ min: 3, max: 50 }).withMessage('Username must be between 3-50 characters'),
+        body('password').isLength({ min: 8 }).withMessage('Password must be at least 8 characters')
+            .custom(value => {
+                if (!validatePassword(value)) {
+                    throw new Error('Password must contain at least one letter and one number');
+                }
+                return true;
+            })
+    ],
+    handleValidationErrors,
+    (req, res) => {
     const { username, password } = req.body;
-    if (!username || !password) {
-        return res.status(400).json({ error: 'Benutzername und Passwort sind erforderlich.' });
-    }
+    const sanitizedUsername = sanitizeString(username);
 
     const saltRounds = 10;
     bcrypt.hash(password, saltRounds, (err, hash) => {
@@ -422,16 +577,16 @@ app.post('/api/admin/users', authenticateAdmin, (req, res) => {
             return res.status(500).json({ error: 'Interner Serverfehler' });
         }
 
-        db.run(`INSERT INTO users (username, password) VALUES (?, ?)`, [username, hash], function(err) {
+        db.run(`INSERT INTO users (username, password) VALUES (?, ?)`, [sanitizedUsername, hash], function(err) {
             if (err) {
                  if (err.errno === 19) {
-                     console.warn(`Versuch, existierenden User '${username}' zu erstellen.`);
+                     console.warn('Versuch, existierenden Benutzer zu erstellen');
                      return res.status(409).json({ error: 'Benutzername existiert bereits.' });
                  }
-                console.error('Fehler beim Erstellen des neuen User-Users:', err.message);
+                console.error('Fehler beim Erstellen des neuen Benutzers:', err.message);
                 return res.status(500).json({ error: err.message });
             }
-            res.status(201).json({ id: this.lastID, username: username });
+            res.status(201).json({ id: this.lastID, username: sanitizedUsername });
         });
     });
 });
@@ -466,24 +621,56 @@ app.get('/api/admin/stats', authenticateAdmin, (req, res) => {
 
 // --- Frontend statische Dateien servieren ---
 const frontendBuildPath = path.join(__dirname, '../frontend/dist');
-app.use(express.static(frontendBuildPath));
 
-app.get('*', (req, res) => {
-     if (!req.path.startsWith('/api/')) {
-         res.sendFile(path.join(frontendBuildPath, 'index.html'));
-     } else {
-         res.status(404).send('API endpoint not found');
-     }
+// Rate limiter for static files
+const staticFileLimiter = rateLimit({
+    windowMs: 1 * 60 * 1000, // 1 minute
+    max: 100, // limit each IP to 100 requests per minute for static files
+    message: 'Too many requests for static files, please try again later.',
+    standardHeaders: true,
+    legacyHeaders: false,
+});
+
+app.use(express.static(frontendBuildPath, { maxAge: '1d' }));
+
+// --- Global Error Handler ---
+app.use((err, req, res, next) => {
+    console.error('Unhandled error:', err);
+    
+    if (err.message === 'Not allowed by CORS') {
+        return res.status(403).json({ error: 'CORS policy: Origin not allowed' });
+    }
+    
+    if (err.type === 'entity.too.large') {
+        return res.status(413).json({ error: 'Request entity too large' });
+    }
+    
+    res.status(500).json({ 
+        error: isProduction ? 'Internal server error' : err.message 
+    });
+});
+
+// 404 handler for API routes
+app.use('/api/*', (req, res) => {
+    res.status(404).json({ error: 'API endpoint not found' });
+});
+
+// Catch-all for frontend routes with rate limiting
+app.get('*', staticFileLimiter, (req, res) => {
+    res.sendFile(path.join(frontendBuildPath, 'index.html'));
 });
 
 
 // --- Server starten ---
 app.listen(port, () => {
-    console.log(`Backend läuft auf http://localhost:${port}`);
-    console.log(`Standard-Admin: Benutzername 'admin', Passwort 'admin' (⚠️ NUR FÜR DEMO!)`);
-    console.log(`Frontend wird von ${frontendBuildPath} serviert (benötigt \`npm run build\` im frontend-Ordner),`);
-    console.log(`alternativ Frontend separat starten (Vite) auf seinem eigenen Port (meist 3000).`);
-     if (!TMDB_API_READ_TOKEN) {
-         console.warn("⚠️ WARNUNG: TMDB_API_READ_TOKEN ist nicht in der .env Datei gesetzt. TMDb-Suche wird nicht funktionieren.");
-     }
+    console.log(`✅ Backend läuft auf http://localhost:${port}`);
+    console.log(`📝 Environment: ${NODE_ENV}`);
+    console.log(`🔒 Security features enabled: Helmet, Rate Limiting, Input Validation`);
+    console.log(`⚠️  Standard-Admin: Benutzername 'admin' (Change password immediately!)`);
+    console.log(`📁 Frontend wird von ${frontendBuildPath} serviert`);
+    console.log(`   (benötigt \`npm run build\` im frontend-Ordner,`);
+    console.log(`   alternativ Frontend separat starten mit \`npm run dev\`)`);
+    if (!process.env.DEFAULT_ADMIN_PASSWORD) {
+        console.warn("⚠️  DEFAULT_ADMIN_PASSWORD not set, using 'admin' as default");
+    }
 });
